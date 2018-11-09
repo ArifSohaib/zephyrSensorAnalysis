@@ -30,12 +30,15 @@ noble.on('discover', function(device){
 				//service discovery complete, find the services we care about
 				var heartRateCh = null;
 				var activityCh = null;
+				var testCh = null;
+				var propWriteCh = null;
 				characteristics.forEach(function(ch, chId){
-					console.log('Found characteristic: ' + ch.name + ' with id: ' + ch.uuid);
+					console.log('Found characteristic: ' + ch.name + ' with id: ' + ch.uuid + " and properties:" + ch.properties);
 					if(ch.uuid === '2a37'){
 						heartRateCh = ch;
 						console.log("HeartRate Char val: " + ch);
 						//process.exit();
+
 						heartRateCh.subscribe(function(error){
 							console.log("heart rate notification is on");
 						});
@@ -45,6 +48,25 @@ noble.on('discover', function(device){
 						console.log("Activity Char val: " + ch);
 						activityCh.subscribe(function(error){
 							console.log("activity notification is on");
+						});
+					}
+					if(ch.uuid === 'befdff16c97911e19b210800200c9a66'){
+						propWriteCh = ch;
+						console.log("Prop Write val: " + ch);
+						propWriteCh.write(new Buffer(0x01),true, function(error){
+							if(error){
+								console.log("error: could not write " + error);
+							}
+							else{
+								console.log("enabled test field");
+							}
+						});
+					}					
+					if(ch.uuid === 'befdff12c97911e19b210800200c9a66'){
+						testCh = ch;
+						console.log("Test Char val: " + ch);
+						testCh.subscribe(function(error){
+							console.log("test notification is on");
 						});
 					}
 
@@ -68,9 +90,21 @@ noble.on('discover', function(device){
 				}
 				else{
 					activityCh.on('data', function(data, isNotification){
-						console.log('activity is: ' + data.readIntBE(2));
+						console.log('activity is: ' + data.readIntBE(1,1));
+						console.log('peek is: ' + data.readIntBE(3,1));
 					});
 				}
+				
+				if(!testCh){
+					console.log('Failed to find Test Measurement characteristic');
+					process.exit();
+				}
+				else{
+					testCh.on('data', function(data, isNotification){
+						console.log('test is: ' + data.readUIntBE(2));
+					});
+				}
+				
 
 		});
 	});
