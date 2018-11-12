@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OpenCV.js</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Our HTML will go here-->
+    <video id="videoInput"></video>
+    <canvas id="canvasOutput"></canvas>
+    <div id="activityDiv"></div>
+    <div id="heartRateDiv"></div>
+    <button type="button" id="start" class="btn btn-primary">Start Camera</button>
+    <a href="#" id="downloadButton">Download Image</a>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+	<script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+	<script type="text/javascript">
+		// Our JavaScript code will go here
+		document.body.classList.add("loading");
+		function onOpenCvReady(){
+			document.body.classList.remove("loading");
+		}
+		
+		
+		document.getElementById('start').onclick = function(){
+			let video = document.getElementById('videoInput');
+			navigator.mediaDevices.getUserMedia({ video: true, audio: false}).then(
+				function(stream){
+					video.srcObject = stream;
+					video.play();
+				}).catch(function(err){
+					console.log("an error occured! " + err);
+				});
+			
+		};
+		
+		document.getElementById('downloadButton').onclick = function(){
+			this.href = document.getElementById('canvasOutput').toDataURL();
+			this.download = 'video.mp4';
+		}
+		setInterval(function(){
+			fetch("http://127.0.0.1:3000/api/heartRate", {method:"GET", mode:"cors"})
+			.then(res => res.json())
+			.then(response => document.getElementById("heartRateDiv").innerHTML = "<p>" + JSON.stringify(response) +"</p>")
+			.catch(error => console.error('Error:', error));
+		},1000);
+		
+		setInterval(function(){
+			fetch("http://127.0.0.1:3000/api/activity", {method:"GET", mode:"cors"})
+			.then(res => res.json())
+			.then(response => document.getElementById("activityDiv").innerHTML = "<p>" + JSON.stringify(response) +"</p>")
+			.catch(error => console.error('Error:', error));
+		},1000);
+	</script>
+
+
+<div class="modal"></div>
+</body>
+</html>
