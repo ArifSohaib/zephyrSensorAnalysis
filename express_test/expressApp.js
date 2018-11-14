@@ -1,8 +1,28 @@
 const noble = require("noble");
 const express = require("express");
 const http = require('http');
+const AWS = require("aws-sdk");
 const app = express();
-
+/**
+var config = new AWS.Config(
+	{
+		region:'us-east-1',
+		accessKeyId : process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+	}
+);
+**/
+/**
+AWS.config.update(
+	{
+		region:'us-east-1',
+		accessKeyId : process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+	}
+);
+**/
+AWS.config.loadFromPath('./config.json');
+var ddb = new AWS.DynamoDB({apiVersion: '2012-10-08'});
 
 //check if the adapter is powered on then start scanning for devices
 noble.on('stateChange', function(state){
@@ -32,12 +52,14 @@ noble.on('discover', function(device){
 				});
 				
 				//service discovery complete, find the services we care about
+
 				var heartRateCh = null;
 				var activityCh = null;
 				var testCh = null;
 				var propWriteCh = null;
 				var heartRate = [];
 				var activity = [];
+				var peekActivity = [];
 				characteristics.forEach(function(ch, chId){
 					console.log('Found characteristic: ' + ch.name + ' with id: ' + ch.uuid + " and properties:" + ch.properties);
 					if(ch.uuid === '2a37'){
@@ -88,6 +110,29 @@ noble.on('discover', function(device){
 				else{
 					heartRateCh.on('data', function(data, isNotification){
 						var hrate = data.readIntBE(2);
+						var currentdate = new Date(); 
+						var datetime =  currentdate.getDate() + "/"
+										+ (currentdate.getMonth()+1)  + "/" 
+										+ currentdate.getFullYear() + " @ "  
+										+ currentdate.getHours() + ":"  
+										+ currentdate.getMinutes() + ":" 
+										+ currentdate.getSeconds();
+						var response = JSON.stringify({"HeartRate":hrate, "time":datetime})
+						
+						var params = {
+							TableName:'ZephyrSensor',
+							Item: {
+								'DateTime':{S: datetime},
+								'HeartRate': {N: hrate.toString()},
+							}
+						};
+						ddb.putItem(params, function(err, data){
+							if(err){
+								console.log("Error", err);
+							}else{
+								console.log("Success", data);
+							}
+						});								
 						console.log('heart rate is: ' + hrate);
 						heartRate.push(hrate);
 					});
@@ -99,12 +144,37 @@ noble.on('discover', function(device){
 				}
 				else{
 					activityCh.on('data', function(data, isNotification){
-						var act = data.readIntBE(2)
+						var act = data.readIntBE(1,1)
+						var peekAct = data.readIntBE(3,1);
 						activity.push(act);
+						peekActivity.push(peekAct);
 						//console.log('activity is: ' + data.readIntBE(1,1));
 						//console.log('peek is: ' + data.readIntBE(3,1));
-						console.log("activity is: " + data.readIntBE(1,1));
-						console.log("peek activity is: " + data.readIntBE(3,1));
+						var currentdate = new Date(); 
+						var datetime =  currentdate.getDate() + "/"
+										+ (currentdate.getMonth()+1)  + "/" 
+										+ currentdate.getFullYear() + " @ "  
+										+ currentdate.getHours() + ":"  
+										+ currentdate.getMinutes() + ":" 
+										+ currentdate.getSeconds();
+						var response = JSON.stringify({"activity":act, "peek":peekAct, "time":datetime})
+						
+						var params = {
+							TableName:'ZephyrSensor',
+							Item: {
+								'DateTime':{S: datetime},
+								'Activity': {N: act.toString()},
+							}
+						};
+						ddb.putItem(params, function(err, data){
+							if(err){
+								console.log("Error", err);
+							}else{
+								console.log("Success", data);
+							}
+						});						
+						console.log("activity is: " + act);
+						console.log("peek activity is: " + peekAct);
 					});
 				}
 				
@@ -127,7 +197,23 @@ noble.on('discover', function(device){
 									+ currentdate.getHours() + ":"  
 									+ currentdate.getMinutes() + ":" 
 									+ currentdate.getSeconds();
-					var response = JSON.stringify({"activity":activity[activity.length-1], "time":datetime})
+					var response = JSON.stringify({"activity":activity[activity.length-1], "peek":peekActivity[peekActivity.length-1], "time":datetime})
+					/**
+					var params = {
+						TableName:"ZephyrSensor",
+						Item: {
+							"DateTime":{S: currentdate},
+							"Activity": {S: activity[activity.length-1]},
+						}
+					};
+					ddb.putItem(params, function(err, data){
+						if(err){
+							console.log("Error", err);
+						}else{
+							console.log("Success", data);
+						}
+					});
+					**/
 					res.send(response);
 				});
 				
@@ -140,6 +226,22 @@ noble.on('discover', function(device){
 									+ currentdate.getMinutes() + ":" 
 									+ currentdate.getSeconds();
 					var response = JSON.stringify({"heart_rate":heartRate[heartRate.length-1], "time":datetime})
+					/**
+					var params = {
+						TableName:"ZephyrSensor",
+						Item: {
+							"DateTime":{S: currentdate},
+							"Activity": {S: heartRate[heartRate.length-1]},
+						}
+					};
+					ddb.putItem(params, function(err, data){
+						if(err){
+							console.log("Error", err);
+						}else{
+							console.log("Success", data);
+						}
+					});					
+					**/
 					res.send(response);
 				});
 				
@@ -147,6 +249,11 @@ noble.on('discover', function(device){
 			
 			
 
+		});
+		app.use(function(req, res, next) {
+		  res.header("Access-Control-Allow-Origin", "*");
+		  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+		  next();
 		});
 		app.listen(3000);
 	}
