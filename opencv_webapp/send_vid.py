@@ -6,7 +6,7 @@ import time
 from sense_hat import SenseHat
 import numpy as np
 from flask import Flask, render_template, Response 
-
+import requests
 
 app = Flask(__name__)
 sense_hat_exists = False
@@ -66,6 +66,11 @@ def gen(camera):
 					b = 255
 				sense.clear((r,g,b))    
 		#cv2.imshow('img',image)
+		
+		r= requests.get("http://127.0.0.1:3000/api/all_data")
+		print(r.json)
+		"""TODO: add s3 url and image + filename"""
+		#requests.put(url, image)
 		yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', image)[1].tostring()+ b'\r\n')
 		#sense.clear()
