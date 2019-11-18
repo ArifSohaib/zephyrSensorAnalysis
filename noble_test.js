@@ -12,7 +12,7 @@ noble.on('stateChange', function(state){
 noble.on('discover', function(device){
 	console.log('Found device: ' + device.address);
 	//check if this is the Zephyr HxM
-	if(device.address ==='c8:fd:19:42:95:00'){
+	if(device.address ==='5c:31:3e:50:47:be'){
 		console.log('Found Zephyr HxM');
 		//Found the device, now connecting
 		noble.stopScanning();
@@ -80,7 +80,7 @@ noble.on('discover', function(device){
 				}
 				else{
 					heartRateCh.on('data', function(data, isNotification){
-						console.log('heart rate is: ' + data.readIntBE(2));
+						console.log('heart rate is: ' + data.readIntBE(1));
 					});
 				}
 				
