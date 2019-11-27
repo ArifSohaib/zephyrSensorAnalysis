@@ -41,21 +41,17 @@
     <h1>Zephyr HxM data monitor</h1>
     <p></p>
     <canvas id="heartRate" width=400, height=400></canvas>
+    <canvas id="activity" width=400, height=400></canvas>
     
     <script>
         var chartData = [];
+        var activityData = [];
         async function getData(){
             try{
                 const response = await fetch("http://10.0.0.202:3000/data")
                 const data = await response.json()
-                chartData = data.chartData;
-                //if(heartRate.length> 15){
-                //    heartRate.idx.shift();
-                //    heartRate.val.shift();
-                //}
-                //for(var i =0;i<heartRate.length;i++){
-                //    chartData.push(chartData[chartData.length-1]);
-                //}
+                chartData = data.heartRate;
+                activityData = data.activityVal;
             }
             catch(error){
                 console.log(error)
@@ -79,6 +75,31 @@
                             'rgba(255, 99, 132, 0.2)',
                         borderColor: 
                             'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }]
+                    }
+                }
+            });
+            var ctx = document.getElementById('activity').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels:labels,
+                    datasets: [{
+                        label: 'Activity',
+                        data: activityData,
+                        backgroundColor: 
+                            'rgba(0, 99, 132, 0.2)',
+                        borderColor: 
+                            'rgba(0, 99, 132, 1)',
                         borderWidth: 1
                     }]
                 },
