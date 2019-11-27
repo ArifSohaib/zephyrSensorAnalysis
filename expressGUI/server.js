@@ -10,7 +10,8 @@ app.set("view engine","ejs");
 app.listen(3000, function(){
     console.log("HxM app listening on port 3000");
 })
-var chartData = [];
+var heartRate = [];
+var activityVal = [];
 //check if the adapter is powered on then start scanning for devices
 noble.on('stateChange', function(state){
 	if(state=='poweredOn'){
@@ -20,7 +21,7 @@ noble.on('stateChange', function(state){
 });
 
 app.get("/data", function(req, res){
-	var data = JSON.stringify({"chartData":chartData});
+	var data = JSON.stringify({"heartRate":heartRate,"activityVal":activityVal});
 	//console.log(data);
 	res.send(data);
 });
@@ -108,11 +109,11 @@ noble.on('discover', function(device){
 				else{
 					heartRateCh.on('data', function(data, isNotification){
 						//console.log('heart rate is: ' + data.readIntLE(1));
-						if(chartData.length % 15 == 0){
-							chartData.shift();
+						if(heartRate.length % 15 == 0){
+							heartRate.shift();
 						}
-						chartData.push(data.readIntLE(1))
-						console.log("heart rate is: " + chartData);
+						heartRate.push(data.readIntLE(1))
+						console.log("heart rate is: " + heartRate);
 					});
 				}
 				
@@ -122,8 +123,13 @@ noble.on('discover', function(device){
 				}
 				else{
 					activityCh.on('data', function(data, isNotification){
-						console.log('activity is: ' + data.readIntLE(0,1));
-						console.log('peek is: ' + data.readIntLE(1,1));
+						var activity = data.readFloatLE(0,1);
+						console.log('activity is: ' + activity);
+						if(activityVal.length % 15 == 0){
+							activityVal.shift();
+						}
+						activityVal.push(activity)
+						console.log('peek is: ' + data.readFloatLE(1,1));
 					});
 				}
 				
